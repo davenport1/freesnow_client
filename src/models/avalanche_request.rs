@@ -1,6 +1,7 @@
 use crate::utils::enumerations::{AspectFlags, ElevationFlags, Likelihood, ProblemTypes, Size};
 use chrono::NaiveDateTime;
 use serde::Serialize;
+use log::debug;
 
 use super::avalanche_json::{AvalancheForecastJson, AvalancheProblemJson, DangerJson};
 
@@ -34,19 +35,14 @@ impl AvalanchePostRequest {
             problems.push(AvalancheProblem::from(problem.clone()));
         }
 
-        // let zone: ForecastZoneJson = avalanche_json.forecast_zone.get(0).unwrap().clone();
-
         Self {
             zone_id: avalanche_json
                 .forecast_zone
                 .get(0)
                 .unwrap()
                 .clone()
-                .zone_id
-                .unwrap()
-                .as_str()
-                .parse::<u32>()
-                .unwrap(), // panic here
+                .id
+                .unwrap() as u32,
             forecast_date: NaiveDateTime::parse_from_str(
                 avalanche_json.created_at.unwrap().as_str(),
                 "%Y-%m-%d %H:%M:%S",
@@ -131,8 +127,8 @@ impl AvalancheProblem {
             "persistentweaklayer" => problem_type = ProblemTypes::PersistentWeakLayer,
             "cornicefall" => problem_type = ProblemTypes::CorniceFall,
             "glide" => problem_type = ProblemTypes::Glide,
-            "wetsnow" => problem_type = ProblemTypes::WetSnow,
-            _ => panic!("No match found for the problem type"),
+            "wetloose" => problem_type = ProblemTypes::WetSnow,
+            _ => panic!("No match found for the problem type: {}", problem_str),
         }
 
         match likelihood_str {
@@ -153,7 +149,7 @@ impl AvalancheProblem {
         {
             size = Size::VeryLargeHistoric;
         } else {
-            panic!("No match found for 'size'")
+            size = Size::SmallLarge; // this neeeds to be fixed
         }
 
         Self {
