@@ -1,5 +1,5 @@
 use crate::utils::enumerations::{AspectFlags, ElevationFlags, Likelihood, ProblemTypes, Size};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, FixedOffset};
 use serde::Serialize;
 use log::debug;
 
@@ -8,7 +8,7 @@ use super::avalanche_json::{AvalancheForecastJson, AvalancheProblemJson, DangerJ
 #[derive(Debug, Serialize)]
 pub struct AvalanchePostRequest {
     zone_id: u32,
-    forecast_date: NaiveDateTime,
+    forecast_date: DateTime<FixedOffset>,
     bottom_line: String,
     overall_danger: u32,
     danger_above_treeline: u32,
@@ -35,6 +35,9 @@ impl AvalanchePostRequest {
             problems.push(AvalancheProblem::from(problem.clone()));
         }
 
+        let date = avalanche_json.created_at.clone().unwrap();
+        dbg!(date.as_str());
+
         Self {
             zone_id: avalanche_json
                 .forecast_zone
@@ -43,11 +46,7 @@ impl AvalanchePostRequest {
                 .clone()
                 .id
                 .unwrap() as u32,
-            forecast_date: NaiveDateTime::parse_from_str(
-                avalanche_json.created_at.unwrap().as_str(),
-                "%Y-%m-%d %H:%M:%S",
-            )
-            .unwrap(),
+            forecast_date: DateTime::parse_from_rfc3339(date.as_str()).unwrap(),
             bottom_line: avalanche_json.bottom_line.unwrap(),
             overall_danger: AvalanchePostRequest::get_overall_danger(avalanche_json.danger.clone()),
             danger_above_treeline: avalanche_json.danger.get(0).unwrap().upper.unwrap() as u32,
